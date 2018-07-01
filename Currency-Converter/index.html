@@ -1,0 +1,331 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Currency-Converter</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="styles/normalize.css"><link rel="stylesheet" href="styles/main.css"><link rel="stylesheet" href="styles/bootstrap.min.css"></head><body class="Site"><div class="row" style="margin-top:5%"><div class="col-md-2"></div><div class="col-md-8"><div class="col-md-12"><div class="col-md-3"><label class="label-control">Amount</label><input type="text" class="form-control" name="" id="amount" placeholder="Enter Amount"></div><div class="col-md-3"><div class="form-group"><label class="label-control">From</label><select class="form-control" id="optionsFrom"></select></div></div><div class="col-md-6"><div class="form-group"><label class="label-control">To</label><select class="form-control" id="optionsTo"></select></div></div></div><div class="col-md-12"><div class="col-md-3"></div><div class="col-md-3"><button class="btn btn-default" id="convertBtn" style="width:100%">Convert</button></div><div class="col-md-3"><input class="form-control" type="text" name="" id="convertedValue" style="width:100%" placeholder=""></div><div class="col-md-3"></div></div><div class="col-md-2"></div></div><script src="js/jquery-3.2.1.min.js"></script><script src="js/bootstrap.min.js"></script><script type="text/javascript">let request = indexedDB.open("library",1);
+
+            request.onupgradeneeded = function() {
+              // The database did not previously exist, so create object stores and indexes.
+              let db = request.result;
+              db.createObjectStore("converted_currency", {keyPath: 'id'});
+
+              db.createObjectStore("allCurrencies", {keyPath: 'id'});
+
+
+
+             
+
+
+
+            };
+
+
+request.onsuccess = function() {
+  db = request.result;
+  // Enable our buttons once the IndexedDB instance is available.
+ 
+};</script><script type="text/javascript">if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("./js/service-worker.js")
+        .then(function(registration) {
+        console.log("Service Worker registered with scope:", registration.scope);
+        }).catch(function(err) {
+        console.log("Service Worker registration failed:", err);
+        });
+        }
+
+
+           
+        //const url='https://free.currencyconverterapi.com/';
+         let convertedvalue=document.getElementById('convertedValue');
+          let convertBtn=document.getElementById('convertBtn').value;
+
+         document.getElementById("convertBtn").addEventListener("click", function(){
+  
+                  const currencyConverter = (amount,from,to) => {
+                        const currId = from + "_" + to;
+                        const reverse = to + "_" + from;
+
+
+                        const combined=currId+','+reverse;
+
+                        //alert(combined);
+
+                        var e = document.getElementById("optionsTo");
+                        var valueB = e.options[e.selectedIndex].value;
+                        var text = e.options[e.selectedIndex].text;
+                        
+
+                        //console.log(currId);
+                
+                         //getting results from convertion when online
+                     // https://free.currencyconverterapi.com/api/v5/convert?q=USD_PHP,PHP_USD
+                        $.getJSON('https://free.currencyconverterapi.com/api/v5/convert?q='+combined,
+                            function(response){
+
+                                console.log(response.results[currId].val);
+                               
+                                    const p=response.results;
+                                     for (var key in p) {
+                    //                 // skip loop if the property is from prototype
+                                             if (!p.hasOwnProperty(key)) continue;
+                                             var obj = p[key];
+                                              for (var prop in obj) {
+                                                   
+                                              if(!obj.hasOwnProperty(prop)) continue;
+                                                
+                                               
+                                              }
+                                                   db = request.result;
+                                             var tx = db.transaction("converted_currency", "readwrite");
+                                         var store = tx.objectStore("converted_currency");
+                                            
+                                             
+                                             store.add(obj);
+
+
+                                     }
+
+                                          db = request.result;
+
+                                      const allCurrenciestx = db.transaction("allCurrencies", "readwrite");
+                                         const allcurriesStore = allCurrenciestx.objectStore("allCurrencies");
+
+                                            const toDbfilter=[];
+                                            toDbfilter.push(from);
+                                            toDbfilter.push(to);
+
+                                            toDbfilter.forEach(function(data){
+
+                                                const filter={
+                                                  id:data
+
+                                              
+                                                 }
+                                                 allcurriesStore.add(filter);
+
+
+                                            });
+
+                                            
+
+                              
+                              try {
+                                 //console.log(data)
+                               let currFrVal = parseFloat(document.getElementById("amount").value);
+                               // console.log(data[currId].val);
+                               // convertedvalue.value=currFrVal * data[currId].val;
+
+
+
+                                           const all=valueB +' '+ currFrVal * response.results[currId].val;
+                                       
+                                            all.toString();
+
+                                            convertedvalue.value=all;
+
+                             } catch (e) {
+                                console.log(e);
+                              alert("Please enter a number in the Amount field.");
+                            }
+                          
+                          
+                           
+                         }) .catch(function (error) {
+                             
+                             // getting results from convertion when offline
+                            db = request.result;
+                           // console.log(db);
+                             const transaction = db.transaction('converted_currency', 'readonly');
+                              const objectStore = transaction.objectStore('converted_currency');
+
+                              if ('getAll' in objectStore) {
+                                // IDBObjectStore.getAll() will return the full set of items in our store.
+                                objectStore.getAll().onsuccess = function(event) {
+                                
+                                  //getting data from index db
+                                    event.target.result.map((r,index) => {
+                                        // console.log(r.value.val);
+                                   //checking for matching currencies with the one in indexdb
+                                           if(r.id==currId){
+                                           
+                                            // console.log(r.Value)
+
+
+                                           let currFrVal = parseFloat(document.getElementById("amount").value);
+                                           const all=valueB +' '+ currFrVal * r.value.val;
+                                       
+                                            all.toString();
+
+                                            convertedvalue.value=all;
+
+                                           
+
+                                           }
+                                    });
+
+                                };
+                              }
+                          
+                        })
+
+                  
+                    }
+
+                    let amount=document.getElementById('amount').value;
+
+                   // var strUser = e.options[e.selectedIndex].value;
+
+                    const e1= document.getElementById("optionsFrom");
+                    const optionsFrom = e1.options[e1.selectedIndex].text;
+
+                     const e2 = document.getElementById("optionsTo");
+                    const optionsTo = e2.options[e2.selectedIndex].text;
+
+
+                
+                   // let optionsTo=document.getElementById('optionsTo').text;
+
+                    currencyConverter(amount,optionsFrom,optionsTo);
+            });
+
+
+
+     
+     window.onload = function() {
+
+                        
+            console.log(db);
+
+                  const allCurrenciestx2= db.transaction("allCurrencies", "readwrite");
+                 const allcurriesStore2 = allCurrenciestx2.objectStore("allCurrencies");
+
+                           
+
+
+            const getAllcurrency=()=>{
+                fetch('https://free.currencyconverterapi.com/api/v5/currencies')
+                  .then(
+                    function(response) {
+                      if (response.status !== 200) {
+                        console.log('Looks like there was a problem. Status Code: ' +
+                          response.status);
+                        return;
+                      }
+
+                      // Examine the text in the response
+                      response.json().then(function(data) {
+                            const allCurrencies=data.results;
+                            for (var key in allCurrencies) {
+                                             // skip loop if the property is from prototype
+                                 if (!allCurrencies.hasOwnProperty(key)) continue;
+                                 var obj = allCurrencies[key];
+                                  for (var prop in obj) {
+                                       
+                                  if(!obj.hasOwnProperty(prop)) continue;
+                                    
+                                    //console.log(obj[prop])
+                                  }
+
+                                  //console.log(obj);
+                                //    const filter={
+                                //              id:obj["id"]
+
+                                              
+                                //         }
+                                // allcurriesStore2.add(filter);
+
+                               // console.log(obj["id"]);
+                                $('#optionsFrom').append($('<option>', { 
+                                    value: obj["currencySymbol"],
+                                    text : obj["id"]
+                                }));
+
+                                $('#optionsTo').append($('<option>', { 
+                                    value: obj["currencySymbol"],
+                                    text : obj["id"]
+                                }));
+                                 // $("optionsFrom").find('option').remove().end().append('<option>'+obj["id"]+'</option>')
+
+                                   
+                                   
+                            }
+
+
+
+                      });
+                    }
+                  )
+                  .catch(function(err) {
+                    console.log(err);
+
+                         db = request.result;
+                           // console.log(db);
+                             const transaction = db.transaction('allCurrencies', 'readonly');
+                              const objectStore = transaction.objectStore('allCurrencies');
+
+                              if ('getAll' in objectStore) {
+                                // IDBObjectStore.getAll() will return the full set of items in our store.
+                                objectStore.getAll().onsuccess = function(event) {
+                                
+                                  //getting data from index db
+                                    event.target.result.map((r,index) => {
+                                         $('#optionsFrom').append($('<option>', { 
+                                   
+                                    text : r.id
+                                    }));
+
+                                    $('#optionsTo').append($('<option>', { 
+                                       
+                                        text : r.id
+                                    }));
+                                           
+                                    });
+
+                                };
+                              }
+                    
+                        // });
+
+                    
+                  });
+            }
+            getAllcurrency();
+
+            // const getAllcurrency=()=>{
+            //     fetch('https://free.currencyconverterapi.com/api/v5/currencies')
+            //          .then((response) => response.json()).then((p) =>{
+
+            //             for (var key in p) {
+            //                          // skip loop if the property is from prototype
+            //                      if (!p.hasOwnProperty(key)) continue;
+            //                      var obj = p[key];
+            //                       for (var prop in obj) {
+                                       
+            //                       if(!obj.hasOwnProperty(prop)) continue;
+                                    
+            //                         //console.log(prop + " = " + obj[prop])
+            //                       }
+            //                      console.log(obj["id"])
+            //                      $("optionsFrom").find('option').remove().end().append('<option>'+obj["id"]+'</option>')
+
+                           
+                           
+            //             }
+
+                        
+
+            //     }).catch(function(err){
+            //           // console.log(err);
+            //     });
+
+                   
+                      
+                       
+                  
+            // }
+
+
+            // getAllcurrency();
+
+
+             
+
+
+                  
+     }</script><script src="js/indexController.js"></script></div></body></html>
